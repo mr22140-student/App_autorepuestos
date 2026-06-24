@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
     $total_venta = 0;
     $productos_a_vender = [];
 
-    // Calcular el monto total de la venta primero buscando precios reales
+    // Calcular el monto total de la venta buscando precios reales
     foreach ($cantidades as $id_producto => $cantidad) {
         $cantidad = intval($cantidad);
         if ($cantidad > 0) {
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
     }
 
     if ($total_venta > 0) {
-        // 1. Guardar el registro general en la tabla 'venta' (Sin romper columnas faltantes)
+        // 1. Guardar el registro general en la tabla 'venta'
         $query_venta = "INSERT INTO venta (cliente_id, fecha, total) VALUES ($cliente_id, '$fecha_actual', $total_venta)";
         
         if (mysqli_query($conn, $query_venta)) {
@@ -45,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
                 // Restar del stock
                 mysqli_query($conn, "UPDATE producto SET stock = stock - $cant WHERE id = $pid");
                 
-                // Insertar en detalle_venta si tu base de datos lo maneja
-                mysqli_query($conn, "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio) VALUES ($venta_id, $pid, $cant, $prc)");
+                // CORREGIDO: Usando 'precio_unitario' tal como está en tu phpMyAdmin
+                mysqli_query($conn, "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario) VALUES ($venta_id, $pid, $cant, $prc)");
             }
 
             // 3. Formatear las variables para tu tabla relacional 'pago'
@@ -61,8 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
                 $tipo_pago_base = 'EFECTIVO';
             }
 
-            // 4. Insertar de manera limpia en tu tabla 'pago' mapeando sus columnas exactas
-            // Nota: Se envía NULL a compra_id porque esto corresponde a una venta.
+            // 4. Insertar en tu tabla 'pago'
             $query_pago = "INSERT INTO pago (tipo, subtipo_tarjeta, monto, compra_id) 
                            VALUES ('$tipo_pago_base', '$subtipo_tarjeta', $total_venta, NULL)";
             
