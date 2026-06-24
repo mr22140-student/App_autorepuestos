@@ -49,6 +49,7 @@ $totalCompras = mysqli_fetch_assoc($compras);
             <a href="librodiario.php">Libro Diario</a>
             <a href="catalogo.php">Catálogo y Manual</a>
             <a href="razones.php">Razones Financieras</a>
+            <a href="balance_comprobacion.php">Balance Comprobación</a>
             <a href="reportes.php">Reportes</a>
         </div>
     </div>
