@@ -26,6 +26,7 @@ $cuentas = mysqli_query($conn, "SELECT * FROM catalogo_cuentas ORDER BY codigo A
             <a href="balance_general.php">Balance General</a>
             <a href="balance_comprobacion.php">Balance Comprobación</a>
             <a href="analisis_financiero.php">Análisis H/V</a>
+            <a href="reportes_financieros.php">Reportes Financieros</a>
             <a href="reportes.php">Reportes</a>
         </div>
     </div>

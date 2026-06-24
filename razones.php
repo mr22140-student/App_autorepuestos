@@ -60,6 +60,7 @@ $margen_utilidad = $ventas_totales > 0 ? (($utilidad_neta / $ventas_totales) * 1
             <a href="balance_general.php">Balance General</a>
             <a href="balance_comprobacion.php">Balance Comprobación</a>
             <a href="analisis_financiero.php">Análisis H/V</a>
+            <a href="reportes_financieros.php">Reportes Financieros</a>
             <a href="reportes.php">Reportes</a>
         </div>
     </div>
