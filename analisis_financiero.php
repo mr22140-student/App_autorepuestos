@@ -87,14 +87,14 @@ $vert_compras = $ventas_2026 > 0 ? ($compras_2026 / $ventas_2026) * 100 : 0;
         </div>
 
         <div class="card-custom">
-            <h4 class="text-warning-custom mb-3">1. Método Horizontal ($anio_anterior vs $anio_actual)</h4>
+            <h4 class="text-warning-custom mb-3">1. Método Horizontal (Año Anterior vs Año Actual)</h4>
             <div class="table-responsive">
                 <table class="table table-custom table-striped table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
                             <th>Rubro Contable</th>
-                            <th class="text-end">Año $anio_anterior ($)</th>
-                            <th class="text-end">Año $anio_actual ($)</th>
+                            <th class="text-end">Año Anterior ($)</th>
+                            <th class="text-end">Año Actual ($)</th>
                             <th class="text-end">Variación Absoluta ($)</th>
                             <th class="text-end">Variación Relativa (%)</th>
                         </tr>
@@ -125,18 +125,17 @@ $vert_compras = $ventas_2026 > 0 ? ($compras_2026 / $ventas_2026) * 100 : 0;
                     </tbody>
                 </table>
             </div>
-            <p class="small text-muted mt-2">Nota: En compras, una variación negativa (descenso de costos) se interpreta como un indicador financiero positivo.</p>
         </div>
 
         <div class="card-custom">
-            <h4 class="text-warning-custom mb-3">2. Método Vertical (Estructura de Costos $anio_actual)</h4>
+            <h4 class="text-warning-custom mb-3">2. Método Vertical (Estructura de Costos)</h4>
             <div class="table-responsive">
                 <table class="table table-custom table-striped table-hover align-middle">
                     <thead class="table-dark">
                         <tr>
                             <th>Rubro Contable</th>
-                            <th class="text-end">Monto Total ($)</th>
-                            <th class="text-end">Porcentaje Estructural (%)</th>
+                            <th class="text-end">Monto Total $</th>
+                            <th class="text-end">Porcentaje Estructural %</th>
                             <th>Interpretación</th>
                         </tr>
                     </thead>
