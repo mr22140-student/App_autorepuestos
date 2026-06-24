@@ -34,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
         $query_venta = "INSERT INTO venta (cliente_id, fecha, total) VALUES ($cliente_id, '$fecha_actual', $total_venta)";
         
         if (mysqli_query($conn, $query_venta)) {
-            $venta_id = mysqli_insert_id($conn); // Recuperamos el ID de la venta creada
+            $venta_id = mysqli_insert_id($conn); // ID de la venta creada
 
             // 2. Descontar las existencias del inventario y guardar el detalle de la venta
             foreach ($productos_a_vender as $p) {
@@ -45,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
                 // Restar del stock
                 mysqli_query($conn, "UPDATE producto SET stock = stock - $cant WHERE id = $pid");
                 
-                // CORREGIDO: Usando 'precio_unitario' tal como está en tu phpMyAdmin
-                mysqli_query($conn, "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario) VALUES ($venta_id, $pid, $cant, $prc)");
+                // Mapeo correcto de precio_unitario
+                mysqli_query($conn, "INSERT INTO detalle_venta (venta_id, producto_id, quantity, precio_unitario) VALUES ($venta_id, $pid, $cant, $prc)");
             }
 
             // 3. Formatear las variables para tu tabla relacional 'pago'
@@ -54,18 +54,52 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
             if ($tipo_pago_form == 'TARJETA_DEBITO') {
                 $tipo_pago_base = 'TARJETA';
                 $subtipo_tarjeta = 'DEBITO';
+                $cuenta_destino_id = 2; // ID de la cuenta "BANCOS" en tu catálogo de cuentas
             } elseif ($tipo_pago_form == 'TARJETA_CREDITO') {
                 $tipo_pago_base = 'TARJETA';
                 $subtipo_tarjeta = 'CREDITO';
+                $cuenta_destino_id = 2; // ID de la cuenta "BANCOS"
             } else {
                 $tipo_pago_base = 'EFECTIVO';
+                $cuenta_destino_id = 1; // ID de la cuenta "CAJA GENERAL" en tu catálogo
             }
 
-            // 4. Insertar en tu tabla 'pago'
+            // Insertar en tu tabla 'pago'
             $query_pago = "INSERT INTO pago (tipo, subtipo_tarjeta, monto, compra_id) 
                            VALUES ('$tipo_pago_base', '$subtipo_tarjeta', $total_venta, NULL)";
-            
             mysqli_query($conn, $query_pago);
+
+
+            // =========================================================================
+            // 4. AUTOMATIZACIÓN DEL LIBRO DIARIO (NUEVO CAMBIO)
+            // =========================================================================
+            
+            // Cuenta de Ventas (Ingresos) e Inventarios. Reemplaza estos IDs por los de tu catálogo real.
+            $cuenta_ventas_id = 5;       // ID asignado a la cuenta "VENTAS"
+            $cuenta_inventario_id = 3;   // ID asignado a la cuenta "INVENTARIOS / MERCANCÍAS"
+            $cuenta_costo_venta_id = 6;  // ID asignado a la cuenta "COSTO DE VENTAS"
+
+            $descripcion_asiento = "Venta de repuestos bajo factura general - Venta #" . $venta_id;
+
+            // --- REGISTRO 1: Entrada de dinero (Debe) a Caja o Bancos ---
+            mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) 
+                                 VALUES ($cuenta_destino_id, '$fecha_actual', '$descripcion_asiento', $total_venta, 0)");
+
+            // --- REGISTRO 2: Reconocimiento del ingreso (Haber) en Ventas ---
+            mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) 
+                                 VALUES ($cuenta_ventas_id, '$fecha_actual', '$descripcion_asiento', 0, $total_venta)");
+
+            // --- REGISTRO 3: Salida del Inventario a Costo de Ventas (Opcional si manejan costos) ---
+            // Supongamos un costo estimado del 60% del valor de venta para propósitos didácticos
+            $costo_estimado = $total_venta * 0.60;
+            
+            mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) 
+                                 VALUES ($cuenta_costo_venta_id, '$fecha_actual', 'Reconocimiento del costo de repuestos vendidos', $costo_estimado, 0)");
+            
+            mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) 
+                                 VALUES ($cuenta_inventario_id, '$fecha_actual', 'Salida de existencias de almacén por venta', 0, $costo_estimado)");
+            
+            // =========================================================================
 
             // Redireccionar al éxito
             header("Location: ventas.php?success=1");
