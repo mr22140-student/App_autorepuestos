@@ -46,7 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['cantidad'])) {
                 mysqli_query($conn, "UPDATE producto SET stock = stock - $cant WHERE id = $pid");
                 
                 // Mapeo correcto de precio_unitario
-                mysqli_query($conn, "INSERT INTO detalle_venta (venta_id, producto_id, quantity, precio_unitario) VALUES ($venta_id, $pid, $cant, $prc)");
+              // LÍNEA 49 CORREGIDA:
+            mysqli_query($conn, "INSERT INTO detalle_venta (venta_id, producto_id, cantidad, precio_unitario) VALUES ($venta_id, $pid, $cant, $prc)");
             }
 
             // 3. Formatear las variables para tu tabla relacional 'pago'
