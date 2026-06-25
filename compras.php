@@ -41,57 +41,40 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['registrar_compra'])) {
     }
 
     if ($total_compra > 0) {
-        // 1. Insertar el registro principal en la tabla 'compra'
-        // NOTA: Si tu tabla 'compra' tiene columnas específicas (ej: proveedor, total, fecha), adáptalas aquí:
         $query_compra = "INSERT INTO compra (proveedor, fecha, total) VALUES ('$proveedor', '$fecha_actual', $total_compra)";
         
         if (mysqli_query($conn, $query_compra)) {
-            $compra_id = mysqli_insert_id($conn); // Recuperamos el ID de la compra
+            $compra_id = mysqli_insert_id($conn); 
 
-            // 2. Actualizar stock e insertar el desglose en 'detalle_compra'
             foreach ($lote_productos as $item) {
                 $pid = $item['id'];
                 $cant = $item['cantidad'];
                 $cst = $item['costo'];
 
-                // Aumentar existencias en inventario
                 mysqli_query($conn, "UPDATE producto SET stock = stock + $cant WHERE id = $pid");
-
-                // Insertar en detalle_compra
                 mysqli_query($conn, "INSERT INTO detalle_compra (compra_id, producto_id, cantidad, precio_unitario) VALUES ($compra_id, $pid, $cant, $cst)");
             }
 
-            // 3. Registrar el método de pago en la tabla relacional 'pago'
             $tipo_pago_base = ($condicion_pago == 'CREDITO') ? 'CREDITO' : 'EFECTIVO';
-            $query_pago = "INSERT INTO pago (tipo, subtipo_tarjeta, monto, compra_id) 
-                           VALUES ('$tipo_pago_base', 'NINGUNO', $total_compra, $compra_id)";
+            $query_pago = "INSERT INTO pago (tipo, subtipo_tarjeta, monto, compra_id) VALUES ('$tipo_pago_base', 'NINGUNO', $total_compra, $compra_id)";
             mysqli_query($conn, $query_pago);
 
-            // =========================================================================
-            // 4. AUTOMATIZACIÓN INTELIGENTE DEL LIBRO DIARIO (COMPRAS)
-            // =========================================================================
-            $cuenta_inventario_id = obtenerIdCuenta($conn, '1103'); // Código para Inventario de Repuestos
+            $cuenta_inventario_id = obtenerIdCuenta($conn, '1103'); 
 
             if ($condicion_pago == 'CREDITO') {
-                $cuenta_pago_id = obtenerIdCuenta($conn, '2101'); // Código para Cuentas por Pagar (Proveedores)
+                $cuenta_pago_id = obtenerIdCuenta($conn, '2101'); 
                 $txt_pago = "a Crédito (Proveedores)";
             } else {
-                $cuenta_pago_id = obtenerIdCuenta($conn, '1101'); // Código para Caja General (Efectivo)
+                $cuenta_pago_id = obtenerIdCuenta($conn, '1101'); 
                 $txt_pago = "en Efectivo (Caja)";
             }
 
             $descripcion_asiento = "Adquisición de mercancía / Repuestos " . $txt_pago . " - Compra #" . $compra_id;
 
             if ($cuenta_inventario_id && $cuenta_pago_id) {
-                // --- REGISTRO 1: Aumento del Activo en Inventario (Debe) ---
-                mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) 
-                                     VALUES ($cuenta_inventario_id, '$fecha_actual', '$descripcion_asiento', $total_compra, 0)");
-
-                // --- REGISTRO 2: Salida de Caja o Aumento de Obligación (Haber) ---
-                mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) 
-                                     VALUES ($cuenta_pago_id, '$fecha_actual', '$descripcion_asiento', 0, $total_compra)");
+                mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) VALUES ($cuenta_inventario_id, '$fecha_actual', '$descripcion_asiento', $total_compra, 0)");
+                mysqli_query($conn, "INSERT INTO libro_diario (cuenta_id, fecha, descripcion, debe, haber) VALUES ($cuenta_pago_id, '$fecha_actual', '$descripcion_asiento', 0, $total_compra)");
             }
-            // =========================================================================
 
             header("Location: compras.php?success=1");
             exit;
@@ -120,26 +103,52 @@ $productos = mysqli_query($conn, "SELECT * FROM producto ORDER BY nombre ASC");
         .input-group-text { background-color: #ffc107; color: #000; font-weight: bold; border: none; }
         .form-control-dark { background-color: #333; border: 1px solid #444; color: #fff; }
         .form-control-dark:focus { background-color: #3a3a3a; color: #fff; border-color: #ffc107; box-shadow: none; }
+        .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
+        .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
+        .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }
+        .custom-dropdown-ul { background-color: #262626 !important; border: 1px solid #444 !important; padding: 6px 0 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .custom-dropdown-ul .dropdown-item { font-size: 0.9rem !important; padding: 7px 16px !important; color: #ffffff !important; transition: background 0.15s ease; }
+        .custom-dropdown-ul .dropdown-item:hover { background-color: #ffc107 !important; color: #000000 !important; font-weight: bold; }
     </style>
 </head>
 <body>
-      <div class="navbar-custom">
-        <span class="navbar-title">ERP Auto Repuestos</span>
-        <div>
-            <a href="index.php">Inicio</a>
-            <a href="productos.php">Productos</a>
-            <a href="clientes.php">Clientes</a>
-            <a href="ventas.php">Ventas</a>
-            <a href="compras.php">Compras</a>
-            <a href="librodiario.php">Libro Diario</a>
-            <a href="libromayor.php">Libro Mayor</a>
-            <a href="catalogo.php">Catálogo y Manual</a>
-            <a href="razones.php">Razones Financieras</a>
-            <a href="balance_general.php">Balance General</a>
-            <a href="balance_comprobacion.php">Balance Comprobación</a>
-            <a href="analisis_financiero.php">Análisis H/V</a>
-            <a href="reportes_financieros.php">Reportes Financieros</a>
-            <a href="reportes.php">Reportes</a>
+
+    <div class="navbar-custom" style="background-color: #262626; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
+        <span class="navbar-title" style="font-weight: bold; font-size: 1.35rem; color: #ffc107; letter-spacing: 0.5px;">
+            ERP Auto Repuestos
+        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="index.php" class="nav-link-custom">Inicio</a>
+            <a href="productos.php" class="nav-link-custom">Productos</a>
+            <a href="clientes.php" class="nav-link-custom">Clientes</a>
+            <a href="ventas.php" class="nav-link-custom">Ventas</a>
+            <a href="compras.php" class="nav-link-custom" style="color: #ffc107; font-weight: bold;">Compras</a>
+            <a href="catalogo.php" class="nav-link-custom">Catálogo y Manual</a>
+            
+            <div class="dropdown" style="display: inline-block;">
+                <button class="btn btn-outline-light btn-sm dropdown-toggle fw-bold nav-dropdown-btn" type="button" id="dropContabilidad" data-bs-toggle="dropdown" aria-expanded="false">
+                    📖 Contabilidad
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark custom-dropdown-ul" aria-labelledby="dropContabilidad">
+                    <li><a class="dropdown-item" href="librodiario.php">Libro Diario</a></li>
+                    <li><a class="dropdown-item" href="libromayor.php">Libro Mayor</a></li>
+                    <li><a class="dropdown-item" href="razones.php">Razones Financieras</a></li>
+                </ul>
+            </div>
+
+            <div class="dropdown" style="display: inline-block;">
+                <button class="btn btn-warning btn-sm dropdown-toggle fw-bold text-dark nav-dropdown-btn" type="button" id="dropReportes" data-bs-toggle="dropdown" aria-expanded="false">
+                    📊 Estados y Reportes
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark custom-dropdown-ul" aria-labelledby="dropReportes">
+                    <li><a class="dropdown-item" href="balance_comprobacion.php">Balance de Comprobación</a></li>
+                    <li><a class="dropdown-item" href="balance_general.php">Balance General</a></li>
+                    <li><a class="dropdown-item" href="analisis_financiero.php">Análisis H/V</a></li>
+                    <li><hr class="dropdown-divider" style="border-color: #444;"></li>
+                    <li><a class="dropdown-item" href="reportes_financieros.php">Reportes Financieros</a></li>
+                    <li><a class="dropdown-item" href="reportes.php">Módulo de Reportes</a></li>
+                </ul>
+            </div>
         </div>
     </div>
 
@@ -213,5 +222,7 @@ $productos = mysqli_query($conn, "SELECT * FROM producto ORDER BY nombre ASC");
             </form>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
