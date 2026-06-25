@@ -37,7 +37,6 @@ $global_acreedor = 0;
         .table-custom { color: #ffffff; background-color: #262626; }
         .total-row { background-color: #333333 !important; font-weight: bold; }
 
-        /* Estilos unificados para el menú desplegable premium */
         .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
         .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
         .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }

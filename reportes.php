@@ -1,8 +1,7 @@
 <?php
-// 1. Conexión a la base de datos
 include("conexion.php");
 
-// 2. Consultas para obtener los totales reales
+// Consultas para obtener los totales reales
 $query_ventas = mysqli_query($conn, "SELECT SUM(total) as total FROM venta");
 $data_ventas = mysqli_fetch_assoc($query_ventas);
 $total_ventas = isset($data_ventas['total']) ? floatval($data_ventas['total']) : 0.00;
@@ -11,10 +10,10 @@ $query_compras = mysqli_query($conn, "SELECT SUM(total) as total FROM compra");
 $data_compras = mysqli_fetch_assoc($query_compras);
 $total_compras = isset($data_compras['total']) ? floatval($data_compras['total']) : 0.00;
 
-// 3. Cálculo de la Utilidad Neta (Ingresos - Costos)
+// Cálculo de la Utilidad Neta (Ingresos - Costos)
 $utilidad_neta = $total_ventas - $total_compras;
 
-// 4. Calcular porcentaje de costo (Evitar división por cero)
+// Calcular porcentaje de costo (Evitar división por cero)
 $porcentaje_costo = ($total_ventas > 0) ? round(($total_compras / $total_ventas) * 100) : 0;
 if($porcentaje_costo > 100) $porcentaje_costo = 100;
 ?>
@@ -30,7 +29,6 @@ if($porcentaje_costo > 100) $porcentaje_costo = 100;
             background-color: #1a1a1a;
             color: #ffffff;
         }
-        /* Estilos unificados para el menú desplegable premium */
         .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
         .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
         .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }

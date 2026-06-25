@@ -1,7 +1,7 @@
 <?php
 include("conexion.php");
 
-// 1. OBTENER TOTALES GENERALES (Métricas Rápidas)
+// OBTENER TOTALES GENERALES
 $ventas_q = mysqli_fetch_assoc(mysqli_query($conn, "SELECT IFNULL(SUM(total), 0) AS total FROM venta"));
 $totalVentas = floatval($ventas_q['total']);
 
@@ -15,7 +15,7 @@ $productos_q = mysqli_fetch_assoc(mysqli_query($conn, "SELECT SUM(stock) AS tota
 $totalStock = intval($productos_q['total']);
 
 
-// 2. CÁLCULO LOGÍSTICO Y FINANCIERO (Estado de Resultados Simulado)
+// CÁLCULO LOGÍSTICO Y FINANCIERO
 // Costo de ventas real estimado al 65% si no se lleva registro estricto en libro diario
 $costoVentas = $totalVentas * 0.65; 
 $utilidadBruta = $totalVentas - $costoVentas;
@@ -27,7 +27,7 @@ $gastosOperativos = floatval($gastos_q['total']) > 0 ? floatval($gastos_q['total
 $utilidadNeta = $utilidadBruta - $gastosOperativos;
 
 
-// 3. DATOS PARA GRÁFICA MENSUAL (Últimos 5 meses de ventas)
+// DATOS PARA GRÁFICA MENSUAL (Últimos 5 meses de ventas)
 $meses = [];
 $valores_ventas = [];
 $grafica_q = mysqli_query($conn, "SELECT DATE_FORMAT(fecha, '%b %Y') as mes, SUM(total) as monto FROM venta GROUP BY mes ORDER BY fecha DESC LIMIT 5");
@@ -62,7 +62,6 @@ if(empty($meses)){
         .table-report th { background-color: #1f1f1f !important; color: #ffc107; }
         .table-report td { border-color: #333; }
 
-        /* Estilos unificados para el menú desplegable premium */
         .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
         .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
         .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }

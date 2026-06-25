@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total = 0;
     $detalles_compra = [];
 
-    // 1. Calcular el total acumulado
+    //Calcular el total acumulado
     foreach ($cantidades as $id => $cantidad) {
         $cantidad = intval($cantidad);
         if ($cantidad > 0 && isset($precios[$id])) {
@@ -31,11 +31,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         die("<script>alert('Debe ingresar cantidades y costos válidos.'); window.history.back();</script>");
     }
 
-    // 2. Registrar la cabecera de la compra
+    //Registrar la cabecera de la compra
     mysqli_query($conn, "INSERT INTO compra (proveedor, total) VALUES ('$proveedor', $total)");
     $compra_id = mysqli_insert_id($conn);
 
-    // 3. Insertar detalles e incrementar el stock en el inventario
+    //Insertar detalles e incrementar el stock en el inventario
     foreach ($detalles_compra as $item) {
         mysqli_query($conn, "INSERT INTO detalle_compra (compra_id, producto_id, cantidad, precio_unitario) 
                              VALUES ($compra_id, {$item['producto_id']}, {$item['cantidad']}, {$item['precio']})");

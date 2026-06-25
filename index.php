@@ -1,11 +1,11 @@
 <?php
-// 1. Incluimos la conexión a la base de datos
+
 include("conexion.php");
 
-// 2. Traemos la consulta de los clientes
+//Traemos la consulta de los clientes
 $resultado_clientes = mysqli_query($conn, "SELECT * FROM cliente");
 
-// 3. Extraer métricas rápidas financieras para el panel de inicio
+//Extraer métricas rápidas financieras para el panel de inicio
 $ventas_q = mysqli_fetch_assoc(mysqli_query($conn, "SELECT IFNULL(SUM(total), 0) AS total FROM venta"));
 $totalVentas = floatval($ventas_q['total']);
 
@@ -29,7 +29,6 @@ $totalStock = intval($productos_q['unidades']);
         .metric-box { border-left: 4px solid #ffc107; background: #1f1f1f; padding: 20px; border-radius: 6px; text-align: center; }
         .panel-icon { font-size: 2rem; margin-bottom: 5px; }
         
-        /* Estilos integrados para evitar que rompa el diseño del menú */
         .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
         .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
         .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }

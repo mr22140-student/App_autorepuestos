@@ -1,9 +1,6 @@
 <?php
 include("conexion.php");
 
-// =========================================================================
-// FUNCIONES DE SOPORTE (Búsqueda automatizada por código contable)
-// =========================================================================
 function obtenerIdCuenta($conexion, $codigo_cuenta) {
     $codigo_cuenta = mysqli_real_escape_string($conexion, $codigo_cuenta);
     $resultado = mysqli_query($conexion, "SELECT id FROM catalogo_cuentas WHERE codigo = '$codigo_cuenta'");

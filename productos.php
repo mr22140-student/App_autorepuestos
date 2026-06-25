@@ -26,7 +26,7 @@ $productos = mysqli_query($conn, "SELECT * FROM producto ORDER BY id DESC");
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/style.css">
     <style>
-        /* Ajustes de contraste para la plantilla de fondo oscuro */
+
         body {
             background-color: #1a1a1a;
             color: #ffffff;
@@ -39,7 +39,7 @@ $productos = mysqli_query($conn, "SELECT * FROM producto ORDER BY id DESC");
             margin-bottom: 30px;
         }
         .text-secondary-custom {
-            color: #ffc107 !important; /* Amarillo/Dorado para alta visibilidad */
+            color: #ffc107 !important; 
         }
         .table-custom {
             color: #ffffff;
@@ -52,7 +52,6 @@ $productos = mysqli_query($conn, "SELECT * FROM producto ORDER BY id DESC");
             border: none;
         }
         
-        /* Estilos integrados para evitar que rompa el diseño del menú */
         .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
         .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
         .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }
