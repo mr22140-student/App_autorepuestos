@@ -16,6 +16,10 @@ $resultado = mysqli_query($conn, $query_saldos);
 $activos = []; $pasivos = []; $patrimonio = [];
 $total_activos = 0; $total_pasivos = 0; $total_patrimonio = 0;
 
+// Variables para calcular la Utilidad del Ejercicio
+$total_ingresos = 0;
+$total_costos_gastos = 0;
+
 if ($resultado) {
     while ($row = mysqli_fetch_assoc($resultado)) {
         if ($row['tipo'] == 'ACTIVO') {
@@ -27,9 +31,28 @@ if ($resultado) {
         } elseif (in_array($row['tipo'], ['PATRIMONIO', 'CAPITAL'])) {
             $saldo = floatval($row['saldo_acreedor']);
             if($saldo != 0) { $patrimonio[] = $row; $total_patrimonio += $saldo; }
+        } elseif ($row['tipo'] == 'INGRESO') {
+            // Acumulamos ingresos (Acreedor)
+            $total_ingresos += floatval($row['saldo_acreedor']);
+        } elseif (in_array($row['tipo'], ['COSTO', 'GASTO'])) {
+            // Acumulamos costos y gastos (Deudor)
+            $total_costos_gastos += floatval($row['saldo_deudor']);
         }
     }
 }
+
+// Calculamos la utilidad neta antes de cerrar el balance
+$utilidad_ejercicio = $total_ingresos - $total_costos_gastos;
+
+// Si hay utilidad o pérdida, la inyectamos al array de patrimonio para mostrarla en la tabla
+if ($utilidad_ejercicio != 0) {
+    $patrimonio[] = [
+        'nombre' => 'Utilidad (o Pérdida) del Ejercicio',
+        'saldo_acreedor' => $utilidad_ejercicio
+    ];
+    $total_patrimonio += $utilidad_ejercicio;
+}
+
 $total_pasivo_mas_patrimonio = $total_pasivos + $total_patrimonio;
 ?>
 <!DOCTYPE html>
@@ -114,7 +137,12 @@ $total_pasivo_mas_patrimonio = $total_pasivos + $total_patrimonio;
                             <?php foreach($pasivos as $p) { ?>
                                 <tr><td><?php echo $p['nombre']; ?></td><td class="text-end">$<?php echo number_format($p['saldo_acreedor'],2); ?></td></tr>
                             <?php } foreach($patrimonio as $pa) { ?>
-                                <tr><td><?php echo $pa['nombre']; ?></td><td class="text-end">$<?php echo number_format($pa['saldo_acreedor'],2); ?></td></tr>
+                                <tr>
+                                    <td><?php echo $pa['nombre']; ?></td>
+                                    <td class="text-end <?php echo ($pa['nombre'] == 'Utilidad (o Pérdida) del Ejercicio') ? 'fw-bold text-success' : ''; ?>">
+                                        $<?php echo number_format($pa['saldo_acreedor'],2); ?>
+                                    </td>
+                                </tr>
                             <?php } ?>
                             <tr class="table-dark text-warning fw-bold"><td>TOTAL PASIVO + CAPITAL:</td><td class="text-end">$<?php echo number_format($total_pasivo_mas_patrimonio,2); ?></td></tr>
                         </tbody>
