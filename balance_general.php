@@ -1,63 +1,36 @@
 <?php
 include("conexion.php");
 
-// 1. CONSULTAR LOS SALDOS DE LOS TRES GRANDES GRUPOS (Clase 1, 2 y 3 del catálogo)
-// Nota: Ajusta los comodines LIKE según la estructura exacta de tus códigos de cuenta.
-
-// --- GRUPO 1: ACTIVOS ---
-$activos_query = mysqli_query($conn, "
-    SELECT c.codigo, c.nombre, 
-           (IFNULL(SUM(l.debe), 0) - IFNULL(SUM(l.haber), 0)) AS saldo
+$query_saldos = "
+    SELECT c.codigo, c.nombre, c.tipo,
+    (IFNULL(SUM(l.debe), 0) - IFNULL(SUM(l.haber), 0)) AS saldo_deudor,
+    (IFNULL(SUM(l.haber), 0) - IFNULL(SUM(l.debe), 0)) AS saldo_acreedor
     FROM catalogo_cuentas c
     LEFT JOIN libro_diario l ON c.id = l.cuenta_id
-    WHERE c.codigo LIKE '1%' 
     GROUP BY c.id
-    HAVING saldo != 0
+    HAVING SUM(l.debe) > 0 OR SUM(l.haber) > 0
     ORDER BY c.codigo ASC
-");
+";
+$resultado = mysqli_query($conn, $query_saldos);
 
-// --- GRUPO 2: PASIVOS ---
-$pasivos_query = mysqli_query($conn, "
-    SELECT c.codigo, c.nombre, 
-           (IFNULL(SUM(l.haber), 0) - IFNULL(SUM(l.debe), 0)) AS saldo
-    FROM catalogo_cuentas c
-    LEFT JOIN libro_diario l ON c.id = l.cuenta_id
-    WHERE c.codigo LIKE '2%' 
-    GROUP BY c.id
-    HAVING saldo != 0
-    ORDER BY c.codigo ASC
-");
+$activos = []; $pasivos = []; $patrimonio = [];
+$total_activos = 0; $total_pasivos = 0; $total_patrimonio = 0;
 
-// --- GRUPO 3: PATRIMONIO ---
-$patrimonio_query = mysqli_query($conn, "
-    SELECT c.codigo, c.nombre, 
-           (IFNULL(SUM(l.haber), 0) - IFNULL(SUM(l.debe), 0)) AS saldo
-    FROM catalogo_cuentas c
-    LEFT JOIN libro_diario l ON c.id = l.cuenta_id
-    WHERE c.codigo LIKE '3%' 
-    GROUP BY c.id
-    HAVING saldo != 0
-    ORDER BY c.codigo ASC
-");
-
-// 2. TOTALIZADORES EN CERO
-$total_activos = 0;
-$total_pasivos = 0;
-$total_patrimonio = 0;
-
-// Arrays para guardar temporalmente los datos y poder calcular los totales antes de renderizar
-$lista_activos = mysqli_fetch_all($activos_query, MYSQLI_ASSOC);
-$lista_pasivos = mysqli_fetch_all($pasivos_query, MYSQLI_ASSOC);
-$lista_patrimonio = mysqli_fetch_all($patrimonio_query, MYSQLI_ASSOC);
-
-foreach ($lista_activos as $a) { $total_activos += floatval($a['saldo']); }
-foreach ($lista_pasivos as $p) { $total_pasivos += floatval($p['saldo']); }
-foreach ($lista_patrimonio as $pat) { $total_patrimonio += floatval($pat['saldo']); }
-
-$total_pasivo_patrimonio = $total_pasivos + $total_patrimonio;
-
-// 3. VERIFICAR CUADRE (Margen de tolerancia por decimales de punto flotante)
-$esta_cuadrado = abs($total_activos - $total_pasivo_patrimonio) < 0.01;
+if ($resultado) {
+    while ($row = mysqli_fetch_assoc($resultado)) {
+        if ($row['tipo'] == 'ACTIVO') {
+            $saldo = floatval($row['saldo_deudor']);
+            if($saldo != 0) { $activos[] = $row; $total_activos += $saldo; }
+        } elseif ($row['tipo'] == 'PASIVO') {
+            $saldo = floatval($row['saldo_acreedor']);
+            if($saldo != 0) { $pasivos[] = $row; $total_pasivos += $saldo; }
+        } elseif (in_array($row['tipo'], ['PATRIMONIO', 'CAPITAL'])) {
+            $saldo = floatval($row['saldo_acreedor']);
+            if($saldo != 0) { $patrimonio[] = $row; $total_patrimonio += $saldo; }
+        }
+    }
+}
+$total_pasivo_mas_patrimonio = $total_pasivos + $total_patrimonio;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -65,161 +38,92 @@ $esta_cuadrado = abs($total_activos - $total_pasivo_patrimonio) < 0.01;
     <meta charset="UTF-8">
     <title>Balance General - ERP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/style.css">
     <style>
         body { background-color: #1a1a1a; color: #ffffff; }
-        .card-custom { background: #262626; border-radius: 8px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-bottom: 25px; }
+        .card-custom { background: #262626; border-radius: 8px; padding: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.3); margin-top: 30px; }
         .text-warning-custom { color: #ffc107 !important; }
-        .table-balance { color: #ffffff; margin-bottom: 0; }
-        .table-balance th { background-color: #1f1f1f !important; color: #ffc107; border-bottom: 2px solid #444; }
-        .table-balance td { border-bottom: 1px solid #333; }
-        .total-row { background-color: #2b2b2b; font-weight: bold; color: #ffc107; }
+        .table-custom { color: #ffffff; background-color: #262626; }
+        .nav-link-custom { color: #e0e0e0; text-decoration: none; font-size: 0.9rem; font-weight: 500; padding: 6px 10px; border-radius: 4px; transition: all 0.2s ease; }
+        .nav-link-custom:hover { color: #ffc107; background-color: rgba(255, 193, 7, 0.05); }
+        .nav-dropdown-btn { font-size: 0.88rem !important; padding: 5px 12px !important; border-radius: 4px !important; box-shadow: none !important; }
+        .custom-dropdown-ul { background-color: #262626 !important; border: 1px solid #444 !important; padding: 6px 0 !important; box-shadow: 0 8px 24px rgba(0,0,0,0.5); }
+        .custom-dropdown-ul .dropdown-item { font-size: 0.9rem !important; padding: 7px 16px !important; color: #ffffff !important; transition: background 0.15s ease; }
+        .custom-dropdown-ul .dropdown-item:hover { background-color: #ffc107 !important; color: #000000 !important; font-weight: bold; }
     </style>
 </head>
 <body>
-    <div class="navbar-custom">
-        <span class="navbar-title">ERP Auto Repuestos</span>
-        <div>
-            <a href="index.php">Inicio</a>
-            <a href="productos.php">Productos</a>
-            <a href="clientes.php">Clientes</a>
-            <a href="ventas.php">Ventas</a>
-            <a href="compras.php">Compras</a>
-            <a href="librodiario.php">Libro Diario</a>
-            <a href="libromayor.php">Libro Mayor</a>
-            <a href="catalogo.php">Catálogo y Manual</a>
-            <a href="razones.php">Razones Financieras</a>
-            <a href="balance_general.php">Balance General</a>
-            <a href="balance_comprobacion.php">Balance Comprobación</a>
-            <a href="analisis_financiero.php">Análisis H/V</a>
-            <a href="reportes_financieros.php">Reportes Financieros</a>
-            <a href="reportes.php">Reportes</a>
+
+    <div class="navbar-custom" style="background-color: #262626; padding: 12px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #333;">
+        <span class="navbar-title" style="font-weight: bold; font-size: 1.35rem; color: #ffc107; letter-spacing: 0.5px;">
+            ERP Auto Repuestos
+        </span>
+        <div style="display: flex; align-items: center; gap: 8px;">
+            <a href="index.php" class="nav-link-custom">Inicio</a>
+            <a href="productos.php" class="nav-link-custom">Productos</a>
+            <a href="clientes.php" class="nav-link-custom">Clientes</a>
+            <a href="ventas.php" class="nav-link-custom">Ventas</a>
+            <a href="compras.php" class="nav-link-custom">Compras</a>
+            <a href="catalogo.php" class="nav-link-custom">Catálogo y Manual</a>
+            
+            <div class="dropdown" style="display: inline-block;">
+                <button class="btn btn-outline-light btn-sm dropdown-toggle fw-bold nav-dropdown-btn" type="button" id="dropContabilidad" data-bs-toggle="dropdown" aria-expanded="false">
+                    📖 Contabilidad
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark custom-dropdown-ul" aria-labelledby="dropContabilidad">
+                    <li><a class="dropdown-item" href="librodiario.php">Libro Diario</a></li>
+                    <li><a class="dropdown-item" href="libromayor.php">Libro Mayor</a></li>
+                    <li><a class="dropdown-item" href="razones.php">Razones Financieras</a></li>
+                </ul>
+            </div>
+
+            <div class="dropdown" style="display: inline-block;">
+                <button class="btn btn-warning btn-sm dropdown-toggle fw-bold text-dark nav-dropdown-btn" type="button" id="dropReportes" data-bs-toggle="dropdown" aria-expanded="false">
+                    📊 Estados y Reportes
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark custom-dropdown-ul" aria-labelledby="dropReportes">
+                    <li><a class="dropdown-item" href="balance_comprobacion.php">Balance de Comprobación</a></li>
+                    <li><a class="dropdown-item fw-bold text-warning" href="balance_general.php">Balance General</a></li>
+                    <li><a class="dropdown-item" href="analisis_financiero.php">Análisis H/V</a></li>
+                    <li><hr class="dropdown-divider" style="border-color: #444;"></li>
+                    <li><a class="dropdown-item" href="reportes_financieros.php">Reportes Financieros</a></li>
+                    <li><a class="dropdown-item" href="reportes.php">Módulo de Reportes</a></li>
+                </ul>
+            </div>
         </div>
     </div>
 
-    <div class="main container py-4">
-        <div class="card-custom text-center">
-            <h2 class="text-warning-custom mb-1">ERP Auto Repuestos S.A. de C.V.</h2>
-            <h4 class="text-white-50 mb-2">Balance General</h4>
-            <p class="small text-muted m-0">Expresado en Dólares ($) - Al: <?php echo date('d/m/Y H:i'); ?></p>
-        </div>
-
-        <div class="alert <?php echo $esta_cuadrado ? 'alert-success bg-success' : 'alert-danger bg-danger'; ?> text-white border-0 text-center py-2 mb-4">
-            <?php 
-                echo $esta_cuadrado 
-                    ? "✔ <strong>Estado Financiero Cuadrado:</strong> Activo es exactamente igual a la suma de Pasivo y Patrimonio." 
-                    : "⚠ <strong>Aviso de Descuadre:</strong> Existe una diferencia de $" . number_format(abs($total_activos - $total_pasivo_patrimonio), 2) . " entre los rubros de la ecuación."; 
-            ?>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-md-6">
-                <div class="card-custom h-100">
-                    <h4 class="text-white mb-3">1. Activos</h4>
-                    <div class="table-responsive">
-                        <table class="table table-balance align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Cuenta / Concepto</th>
-                                    <th class="text-end">Saldo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if(empty($lista_activos)): ?>
-                                    <tr><td colspan="3" class="text-muted text-center">No hay registros de activo.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach($lista_activos as $act): ?>
-                                    <tr>
-                                        <td><code><?php echo htmlspecialchars($act['codigo'], ENT_QUOTES, 'UTF-8'); ?></code></td>
-                                        <td><?php echo htmlspecialchars($act['nombre'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td class="text-end <?php echo $act['saldo'] < 0 ? 'text-danger' : ''; ?>">
-                                            $<?php echo number_format(floatval($act['saldo']), 2); ?>
-                                        </td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                <tr class="total-row">
-                                    <td colspan="2">TOTAL ACTIVOS</td>
-                                    <td class="text-end">$<?php echo number_format($total_activos, 2); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
+    <div class="container py-4">
+        <div class="card-custom">
+            <h2 class="text-warning-custom text-center mb-4">Balance General Real-Time</h2>
+            <div class="row">
+                <div class="col-md-6 border-end border-secondary">
+                    <h5 class="text-info mb-3">1. ACTIVOS</h5>
+                    <table class="table table-custom table-striped border">
+                        <tbody>
+                            <?php foreach($activos as $a) { ?>
+                                <tr><td><?php echo $a['nombre']; ?></td><td class="text-end">$<?php echo number_format($a['saldo_deudor'],2); ?></td></tr>
+                            <?php } ?>
+                            <tr class="table-dark text-info fw-bold"><td>TOTAL ACTIVOS:</td><td class="text-end">$<?php echo number_format($total_activos,2); ?></td></tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card-custom mb-4">
-                    <h4 class="text-white mb-3">2. Pasivos</h4>
-                    <div class="table-responsive">
-                        <table class="table table-balance align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Cuenta / Concepto</th>
-                                    <th class="text-end">Saldo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if(empty($lista_pasivos)): ?>
-                                    <tr><td colspan="3" class="text-muted text-center">No hay registros de pasivo.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach($lista_pasivos as $pas): ?>
-                                    <tr>
-                                        <td><code><?php echo htmlspecialchars($pas['codigo'], ENT_QUOTES, 'UTF-8'); ?></code></td>
-                                        <td><?php echo htmlspecialchars($pas['nombre'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td class="text-end">$<?php echo number_format(floatval($pas['saldo']), 2); ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                <tr class="total-row">
-                                    <td colspan="2">TOTAL PASIVOS</td>
-                                    <td class="text-end">$<?php echo number_format($total_pasivos, 2); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="card-custom">
-                    <h4 class="text-white mb-3">3. Patrimonio</h4>
-                    <div class="table-responsive">
-                        <table class="table table-balance align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Código</th>
-                                    <th>Cuenta / Concepto</th>
-                                    <th class="text-end">Saldo</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php if(empty($lista_patrimonio)): ?>
-                                    <tr><td colspan="3" class="text-muted text-center">No hay registros de patrimonio.</td></tr>
-                                <?php else: ?>
-                                    <?php foreach($lista_patrimonio as $patr): ?>
-                                    <tr>
-                                        <td><code><?php echo htmlspecialchars($patr['codigo'], ENT_QUOTES, 'UTF-8'); ?></code></td>
-                                        <td><?php echo htmlspecialchars($patr['nombre'], ENT_QUOTES, 'UTF-8'); ?></td>
-                                        <td class="text-end">$<?php echo number_format(floatval($patr['saldo']), 2); ?></td>
-                                    </tr>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                                <tr class="total-row">
-                                    <td colspan="2">TOTAL PATRIMONIO</td>
-                                    <td class="text-end">$<?php echo number_format($total_patrimonio, 2); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="p-3 mt-4 text-center rounded bg-dark border border-warning">
-                    <h5 class="m-0 text-white-50">TOTAL PASIVO + PATRIMONIO</h5>
-                    <h3 class="m-0 text-warning font-weight-bold mt-1">$<?php echo number_format($total_pasivo_patrimonio, 2); ?></h3>
+                <div class="col-md-6">
+                    <h5 class="text-danger mb-3">2. PASIVOS Y PATRIMONIO</h5>
+                    <table class="table table-custom table-striped border">
+                        <tbody>
+                            <?php foreach($pasivos as $p) { ?>
+                                <tr><td><?php echo $p['nombre']; ?></td><td class="text-end">$<?php echo number_format($p['saldo_acreedor'],2); ?></td></tr>
+                            <?php } foreach($patrimonio as $pa) { ?>
+                                <tr><td><?php echo $pa['nombre']; ?></td><td class="text-end">$<?php echo number_format($pa['saldo_acreedor'],2); ?></td></tr>
+                            <?php } ?>
+                            <tr class="table-dark text-warning fw-bold"><td>TOTAL PASIVO + CAPITAL:</td><td class="text-end">$<?php echo number_format($total_pasivo_mas_patrimonio,2); ?></td></tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
